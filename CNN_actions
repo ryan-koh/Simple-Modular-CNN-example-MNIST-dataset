@@ -1,0 +1,32 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat May  4 14:37:05 2019
+
+@author: kohr
+"""
+import keras
+from keras.layers import Input, Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+
+def action(layer_parameters,prev_layer):
+    
+    if layer_parameters['action'] == 'input':
+        out = Input(layer_parameters['input_shape'])
+    
+    elif layer_parameters['action'] == 'conv2d':
+    
+        out = Conv2D(layer_parameters['nodes'], (layer_parameters['filtsize1'], layer_parameters['filtsize2']),  \
+                       activation= layer_parameters['activation'], padding= layer_parameters['padding'], name = layer_parameters['name'])(prev_layer)
+        
+        
+    elif layer_parameters['action'] == 'maxpool2d':
+        out = MaxPooling2D( (layer_parameters['filtsize1'], layer_parameters['filtsize2']),  \
+                       padding= layer_parameters['padding'], name = layer_parameters['name'])(prev_layer)
+    
+    elif layer_parameters['action'] == 'flatten':
+        out = Flatten()(prev_layer)
+        
+    elif layer_parameters['action'] == 'dense':
+        out = Dense(layer_parameters['nodes'], activation= layer_parameters['activation'], name = layer_parameters['name'])(prev_layer)
+        
+    return out
