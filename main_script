@@ -1,0 +1,88 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat May  4 14:23:10 2019
+
+@author: kohr
+"""
+
+import keras
+from keras.datasets import mnist
+from keras.models import Sequential, Model, load_model
+from keras.layers import Input, Dense, Dropout, Flatten
+from keras.layers import Conv2D, MaxPooling2D
+from keras.optimizers import SGD
+from keras import backend as K
+
+import CNN_actions as CNN
+
+''' Parameters of the CNN '''
+num_epochs = 10
+batch_sz = 128
+num_classes = 10
+lrate = 0.001
+decay_rate = 1e-6
+moment = 0.9
+loss_fun = 'categorical_crossentropy'
+
+''' Parameters for the CNN Layers '''
+CNN_Layers = {}
+CNN_Layers[0] = {'action':'input'}
+CNN_Layers[1] = {'action':'conv2d','nodes': 64,'filtsize1': 4, 'filtsize2': 4, 'activation': 'relu', 'padding':'same','name':'conv1'}
+CNN_Layers[2] = {'action':'maxpool2d','filtsize1': 4, 'filtsize2': 4, 'padding':'same','name':'mpool1'}
+CNN_Layers[3] = {'action':'flatten'}
+CNN_Layers[4] = {'action':'dense','nodes': 256,'activation': 'relu','name':'den1'}
+CNN_Layers[5] = {'action':'dense','nodes': 10,'activation': 'softmax','name':'den2'}
+
+''' image dimenstions '''
+image_rows, image_cols = 28,28
+
+''' Load Data '''
+(training_data, training_labels), (test_data, test_labels) = mnist.load_data()
+
+training_data = training_data.reshape(training_data.shape[0], image_rows, image_cols, 1)
+test_data = test_data.reshape(test_data.shape[0], image_rows, image_cols, 1)
+
+''' Input shape '''
+input_shape = (image_rows, image_cols, 1)
+CNN_Layers[0]['input_shape'] = input_shape
+
+''' Convert data into floats and normalize between 0 and 1 '''
+training_data = training_data.astype('float32')
+test_data = test_data.astype('float32')
+training_data /= 255
+test_data /= 255
+
+''' Convert labels to hot-1-encoding '''
+training_labels = keras.utils.to_categorical(training_labels, num_classes)
+test_labels = keras.utils.to_categorical(test_labels, num_classes)
+
+''' CNN layers '''
+input_img = CNN.action(CNN_Layers[0],None)
+Conv1_out = CNN.action(CNN_Layers[1],input_img)
+MPool1 = CNN.action(CNN_Layers[2],Conv1_out)
+Flat = CNN.action(CNN_Layers[3],MPool1)
+Dense1 = CNN.action(CNN_Layers[4],Flat)
+Dense2 = CNN.action(CNN_Layers[5],Dense1)
+
+
+''' Creation of Model '''
+Full_model = Model(input_img,Dense2)
+
+sgd = SGD(lr= lrate, decay= decay_rate, momentum=moment, nesterov=True)
+Full_model.compile(loss=loss_fun,
+                  optimizer=sgd,
+                  metrics=['accuracy'])
+
+''' Training of Model '''
+Full_model.fit(training_data, training_labels,
+          batch_size=batch_sz,
+          epochs=num_epochs,
+          verbose=1,
+          validation_data=(test_data, test_labels))
+
+''' Evaluation of Model '''
+score = Full_model.evaluate(test_data, test_labels, verbose=0)
+
+print('Test loss:', score[0])
+print('Test accuracy:', score[1])
+
